@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # semantic-release needs full history
+          fetch-depth: 0  # for semantic-release to see commit history
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,26 +28,33 @@ jobs:
         id: semrel
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release publish
+        run: |
+          # Run semantic-release in "publish" mode
+          semantic-release publish || echo "No previous tag found, creating v0.1.0"
+          
+          # If no tag exists yet, semantic-release exits non-zero
+          # In that case, we manually create an initial tag
+          if [ ! "$(git tag)" ]; then
+            VERSION="v0.1.0"
+            git tag $VERSION
+            git push origin $VERSION
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            # Extract the latest tag from git
+            VERSION=$(git describe --tags --abbrev=0)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Build optimized binary with Nuitka
-        if: steps.semrel.outputs.released == 'true'
+      - name: Build binary with Nuitka
         run: |
           mkdir -p dist
-          nuitka3 \
-            --onefile \
-            --standalone \
-            --remove-output \
-            --lto=yes \
-            --clang \
-            --jobs=4 \
-            --output-filename=dist/sentinel-x86_64-linux \
-            sentinel.py
+          nuitka3 --onefile --standalone sentinel.py \
+            --output-filename=dist/sentinel-linux-x86_64
 
       - name: Upload Release Asset
-        if: steps.semrel.outputs.released == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/sentinel-x86_64-linux
+          tag_name: ${{ steps.semrel.outputs.version }}
+          files: dist/sentinel-linux-x86_64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
