@@ -69,7 +69,12 @@ jobs:
           ls -lh dist/
 
       # 5. Run semantic-release (will upload dist/* automatically)
+      - name: Debug semantic-release (noop)
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release version --noop -vv
+
       - name: Run semantic-release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release publish
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release publish -vv
