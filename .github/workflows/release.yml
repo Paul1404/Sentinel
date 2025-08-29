@@ -6,8 +6,8 @@ on:
       - main
 
 permissions:
-  contents: write   # needed to create releases
-  id-token: write   # for future signing if needed
+  contents: write   # needed to create tags and releases
+  id-token: write   # reserved for future signing if needed
 
 jobs:
   release:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # required for semantic-release to see all commits
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,32 +27,56 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y ccache
 
+      - name: Prepare cache dirs
+        run: |
+          mkdir -p ~/.cache/pip
+          mkdir -p ~/.cache/ccache
+          mkdir -p .nuitka-cache
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-ccache-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-ccache-
 
+      - name: Cache Nuitka
+        uses: actions/cache@v4
+        with:
+          path: .nuitka-cache
+          key: ${{ runner.os }}-nuitka-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-nuitka-
+
       - name: Install dependencies
         run: pip install python-semantic-release nuitka
+
+      - name: Bootstrap version if no tags exist
+        run: |
+          if ! git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            VERSION="0.1.0"
+            echo "Bootstrapping initial version $VERSION"
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+          fi
 
       - name: Run semantic-release
         id: semrel
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          semantic-release publish || echo "No previous tag found, creating v0.1.0"
-          if ! git describe --tags --abbrev=0 >/dev/null 2>&1; then
-            VERSION="0.1.0"
-            git tag "v$VERSION"
-            git push origin "v$VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-          else
-            VERSION=$(git describe --tags --abbrev=0)
-            echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
-          fi
+          semantic-release publish
+          VERSION=$(git describe --tags --abbrev=0)
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
 
       - name: Build binary with Nuitka
         run: |
@@ -63,8 +87,13 @@ jobs:
             --standalone \
             --lto=yes \
             --static-libpython=yes \
+            --remove-output=no \
+            --output-dir=.nuitka-cache \
             --output-filename=sentinel-linux-x86_64 \
             sentinel.py
+
+      - name: Strip binary
+        run: strip sentinel-linux-x86_64
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
