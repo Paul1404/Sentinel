@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write   # needed to create releases
+  id-token: write   # for future signing if needed
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -13,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # for semantic-release to see commit history
+          fetch-depth: 0  # required for semantic-release to see all commits
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,32 +33,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Run semantic-release in "publish" mode
+          # Run semantic-release to bump version, tag, and create release
           semantic-release publish || echo "No previous tag found, creating v0.1.0"
-          
           # If no tag exists yet, semantic-release exits non-zero
-          # In that case, we manually create an initial tag
-          if [ ! "$(git tag)" ]; then
-            VERSION="v0.1.0"
-            git tag $VERSION
-            git push origin $VERSION
+          # We handle that by creating an initial tag manually
+          if ! git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            VERSION="0.1.0"
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
-            # Extract the latest tag from git
             VERSION=$(git describe --tags --abbrev=0)
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build binary with Nuitka
         run: |
-          mkdir -p dist
+          VERSION=${{ steps.semrel.outputs.version }}
+          echo "Building Sentinel version $VERSION"
           nuitka3 --onefile --standalone sentinel.py \
-            --output-filename=dist/sentinel-linux-x86_64
+            --output-filename=sentinel-linux-x86_64
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.semrel.outputs.version }}
-          files: dist/sentinel-linux-x86_64
+          tag_name: v${{ steps.semrel.outputs.version }}
+          files: sentinel-linux-x86_64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
