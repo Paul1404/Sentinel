@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # semantic-release needs full history
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install python-semantic-release nuitka
+
+      - name: Run semantic-release
+        id: semrel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release publish
+
+      - name: Build optimized binary with Nuitka
+        if: steps.semrel.outputs.released == 'true'
+        run: |
+          mkdir -p dist
+          nuitka3 \
+            --onefile \
+            --standalone \
+            --remove-output \
+            --lto=yes \
+            --clang \
+            --jobs=4 \
+            --output-filename=dist/sentinel-x86_64-linux \
+            sentinel.py
+
+      - name: Upload Release Asset
+        if: steps.semrel.outputs.released == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/sentinel-x86_64-linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
