@@ -17,26 +17,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # required for semantic-release to see all commits
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
       - name: Install dependencies
-        run: |
-          pip install python-semantic-release nuitka
+        run: pip install python-semantic-release nuitka
 
       - name: Run semantic-release
         id: semrel
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Run semantic-release to bump version, tag, and create release
           semantic-release publish || echo "No previous tag found, creating v0.1.0"
-          # If no tag exists yet, semantic-release exits non-zero
-          # We handle that by creating an initial tag manually
           if ! git describe --tags --abbrev=0 >/dev/null 2>&1; then
             VERSION="0.1.0"
             git tag "v$VERSION"
@@ -51,8 +58,13 @@ jobs:
         run: |
           VERSION=${{ steps.semrel.outputs.version }}
           echo "Building Sentinel version $VERSION"
-          nuitka --onefile --standalone sentinel.py \
-            --output-filename=sentinel-linux-x86_64
+          nuitka \
+            --onefile \
+            --standalone \
+            --lto=yes \
+            --static-libpython=yes \
+            --output-filename=sentinel-linux-x86_64 \
+            sentinel.py
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
