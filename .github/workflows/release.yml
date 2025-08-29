@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write   # needed to create tags and releases
-  id-token: write   # reserved for future signing if needed
 
 jobs:
   release:
@@ -17,15 +16,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # required for semantic-release to see all commits
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y ccache
+      - name: Ensure ccache
+        run: |
+          if ! command -v ccache >/dev/null 2>&1; then
+            echo "Installing ccache..."
+            sudo apt-get update -qq
+            sudo apt-get install -y ccache
+          else
+            echo "ccache already available"
+          fi
 
       - name: Prepare cache dirs
         run: |
@@ -87,7 +93,6 @@ jobs:
             --standalone \
             --lto=yes \
             --static-libpython=yes \
-            --remove-output=no \
             --output-dir=.nuitka-cache \
             --output-filename=sentinel-linux-x86_64 \
             sentinel.py
