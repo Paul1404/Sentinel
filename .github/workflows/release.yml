@@ -51,7 +51,7 @@ jobs:
         run: |
           VERSION=${{ steps.semrel.outputs.version }}
           echo "Building Sentinel version $VERSION"
-          nuitka3 --onefile --standalone sentinel.py \
+          nuitka --onefile --standalone sentinel.py \
             --output-filename=sentinel-linux-x86_64
 
       - name: Upload Release Asset
