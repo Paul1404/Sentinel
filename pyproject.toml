@@ -1,9 +1,48 @@
 [project]
 name = "sentinel"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.0"  # semantic-release will bump this automatically
+description = "Sentinel - SSH Lifecycle Manager"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "typer>=0.16.1",
+    "rich>=13.0.0",  # add rich since we use it for tables/output
 ]
+
+[project.scripts]
+sentinel = "sentinel.cli:app"
+
+[tool.semantic_release]
+# Where to bump the version
+version_toml = ["pyproject.toml:project.version"]
+
+# Commit parsing style
+commit_parser = "conventional"
+
+# Always bump at least a patch version
+always_patch = true
+
+# Always commit version + changelog updates
+commit_version_number = true
+
+# Allow 0.x versions (we're still pre-1.0)
+allow_zero_version = true
+major_on_zero = true
+
+# Changelog settings
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+
+# Commit message for release commits
+commit_message = "release: v{version}"
+
+# Remote settings (GitHub)
+[tool.semantic_release.remote]
+type = "github"
+token = { env = "GH_TOKEN" }
+
+# Publish settings (upload binary to release)
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
