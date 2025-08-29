@@ -24,20 +24,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 1. Install ccache
       - name: Install ccache
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ccache
           ccache --version
+          ccache --max-size=2G
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
+      # 2. Restore ccache cache
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -46,9 +41,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-
 
+      # 3. Restore pip cache
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install python-semantic-release nuitka
 
+      # 4. Build binary
       - name: Build binary with Nuitka
         run: |
           mkdir -p dist
@@ -57,10 +62,13 @@ jobs:
             --standalone \
             --lto=yes \
             --static-libpython=yes \
-            --output-filename=dist/sentinel-linux-x86_64 \
+            --output-filename=sentinel-linux-x86_64 \
             sentinel.py
-          strip dist/sentinel-linux-x86_64
+          strip sentinel-linux-x86_64
+          mv sentinel-linux-x86_64 dist/
+          ls -lh dist/
 
+      # 5. Run semantic-release (will upload dist/* automatically)
       - name: Run semantic-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
