@@ -1,6 +1,6 @@
 [project]
 name = "sentinel"
-version = "0.3.3"  # semantic-release will bump this automatically
+version = "0.3.4"  # semantic-release will bump this automatically
 description = "Sentinel - SSH Lifecycle Manager"
 readme = "README.md"
 requires-python = ">=3.12"

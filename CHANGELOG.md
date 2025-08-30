@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.4 (2025-08-30)
+
+### Bug Fixes
+
+- Drop --static-libpython
+  ([`d888e93`](https://github.com/Paul1404/Sentinel/commit/d888e93aea1a71298b73ed015edf31d3b408085f))
+
+
 ## v0.3.3 (2025-08-30)
 
 ### Bug Fixes
