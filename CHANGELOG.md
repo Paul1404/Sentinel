@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.6 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(workflow): fix Nuitka build by unpacking static libpython in manylinux container
+  ([`b5c5a80`](https://github.com/Paul1404/Sentinel/commit/b5c5a80d241864e905519bae82b6ff2a66eb2732))
+
+
 ## v0.3.5 (2025-08-30)
 
 ### Bug Fixes
