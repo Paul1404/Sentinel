@@ -34,56 +34,6 @@ jobs:
           git_committer_email: "actions@users.noreply.github.com"
           verbosity: 2
 
-      # -------------------------------
-      # Cache pip dependencies (Nuitka, etc.)
-      # -------------------------------
-      - name: Cache pip
-        if: steps.release.outputs.released == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # -------------------------------
-      # Cache Nuitka compilation cache
-      # -------------------------------
-      - name: Cache Nuitka
-        if: steps.release.outputs.released == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka
-          key: ${{ runner.os }}-nuitka-${{ github.ref_name }}
-          restore-keys: |
-            ${{ runner.os }}-nuitka-
-
-      # -------------------------------
-      # Cache ccache
-      # -------------------------------
-      - name: Cache ccache
-        if: steps.release.outputs.released == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ github.ref_name }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      - name: Install build tools
-        if: steps.release.outputs.released == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ccache g++ zlib1g-dev
-          ccache --max-size=2G
-          ccache --version
-
-      - name: Install Nuitka
-        if: steps.release.outputs.released == 'true'
-        run: |
-          python -m pip install --upgrade pip wheel setuptools
-          pip install nuitka
-
       - name: Build binary with Nuitka (manylinux_2_28, Python 3.12)
         if: steps.release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
@@ -98,7 +48,7 @@ jobs:
             /opt/python/cp312-cp312/bin/python -m venv venv
             source venv/bin/activate
 
-            # Install build tools + your app dependencies
+            # Install build tools + app dependencies
             pip install --upgrade pip setuptools wheel nuitka
             pip install -r requirements.txt 
 
@@ -118,6 +68,12 @@ jobs:
             mv $BASENAME dist/
             ls -lh dist/
 
+      - name: Smoke test built binary
+        if: steps.release.outputs.released == 'true'
+        run: |
+          chmod +x dist/sentinel-linux-x86_64-*
+          echo "Running smoke test..."
+          ./dist/sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
 
       - name: Publish binary to GitHub Release
         if: steps.release.outputs.released == 'true'
