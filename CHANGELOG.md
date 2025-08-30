@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.1 (2025-08-30)
+
+### Bug Fixes
+
+- Forgot to install pip
+  ([`9e8ddcf`](https://github.com/Paul1404/Sentinel/commit/9e8ddcf9416e65926c8c521c9cb0878537e7a294))
+
+
 ## v0.2.0 (2025-08-30)
 
 ### Bug Fixes
