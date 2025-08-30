@@ -6,73 +6,48 @@ on:
       - main
 
 permissions:
-  contents: write   # needed to push commits + tags + releases
+  contents: write   # needed to push commits, tags, and create releases
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-release-${{ github.ref_name }}
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Force branch to workflow sha
+        run: git reset --hard ${{ github.sha }}
+
+      - name: Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.3.1
         with:
-          python-version: "3.12"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions"
+          git_committer_email: "actions@users.noreply.github.com"
+          verbosity: 2
 
-      - name: Install ccache
+      - name: Install build tools
+        if: steps.release.outputs.released == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ccache
-          ccache --version
           ccache --max-size=2G
+          ccache --version
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      - name: Cache Nuitka
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/nuitka
-          key: ${{ runner.os }}-nuitka-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-nuitka-
-
-      - name: Install dependencies
-        run: pip install python-semantic-release nuitka
-
-      # Step 1: Run semantic-release to bump version, tag, changelog, release
-      - name: Run semantic-release
-        id: semrel
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release -vv publish
-
-      # Step 2: Build binary with Nuitka (after version bump)
       - name: Build binary with Nuitka
-        env:
-          NUITKA_CACHE_DIR: ~/.cache/nuitka
+        if: steps.release.outputs.released == 'true'
         run: |
           mkdir -p dist
-          VERSION=$(git describe --tags --abbrev=0)
-          BASENAME="sentinel-linux-x86_64-${VERSION#v}"
+          VERSION=${{ steps.release.outputs.version }}
+          BASENAME="sentinel-linux-x86_64-${VERSION}"
           echo "Building Sentinel version $VERSION -> $BASENAME"
           python -m nuitka \
             --onefile \
@@ -84,3 +59,10 @@ jobs:
           strip $BASENAME
           mv $BASENAME dist/
           ls -lh dist/
+
+      - name: Publish binary to GitHub Release
+        if: steps.release.outputs.released == 'true'
+        uses: python-semantic-release/publish-action@v10.3.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
