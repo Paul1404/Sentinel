@@ -100,7 +100,6 @@ jobs:
             --static-libpython=yes \
             --output-filename=$BASENAME \
             sentinel.py
-          strip $BASENAME
           mv $BASENAME dist/
           ls -lh dist/
 
