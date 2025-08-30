@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-release:
-    name: Build & Release Sentinel Binary
+    name: Build & Release Sentinel
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-release-${{ github.ref_name }}
@@ -42,32 +42,15 @@ jobs:
           verbosity: 2
 
       # -------------------------------
-      # Cache ccache across builds
-      # -------------------------------
-      - name: Cache ccache
-        if: steps.semantic-release.outputs.released == 'true'
-        uses: actions/cache@v4
-        with:
-          path: .ccache
-          key: ${{ runner.os }}-ccache-${{ github.ref_name }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      # -------------------------------
-      # Build binary inside manylinux container
+      # Build Nuitka binary inside manylinux
       # -------------------------------
       - name: Build binary with Nuitka (manylinux_2_28, Python 3.12)
         if: steps.semantic-release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
         with:
           image: quay.io/pypa/manylinux_2_28_x86_64
-          options: >
-            -v ${{ github.workspace }}:/workspace
-            -v ${{ github.workspace }}/.ccache:/root/.ccache
+          options: -v ${{ github.workspace }}:/workspace
           run: |
-            # Install ccache inside container
-            yum install -y ccache
-
             # Unpack static libpython (required for Nuitka embedding)
             cd /opt/_internal
             tar xf static-libs-for-embedding-only.tar.xz
@@ -81,13 +64,6 @@ jobs:
             pip install --upgrade pip setuptools wheel nuitka
             pip install -r requirements.txt
 
-            # Configure ccache
-            export PATH="/usr/lib64/ccache:$PATH"
-            ccache --max-size=2G
-            echo ">>> ccache stats before build:"
-            ccache --show-stats
-
-            # Build binary with Nuitka
             VERSION=${{ steps.semantic-release.outputs.version }}
             BASENAME="sentinel-linux-x86_64-${VERSION}"
             echo ">>> Building Sentinel version $VERSION -> $BASENAME"
@@ -105,22 +81,14 @@ jobs:
             mv $BASENAME dist/
             ls -lh dist/
 
-            echo ">>> ccache stats after build:"
-            ccache --show-stats
-
       # -------------------------------
-      # Smoke test binary inside container
+      # Smoke test binary
       # -------------------------------
       - name: Smoke test built binary
         if: steps.semantic-release.outputs.released == 'true'
-        uses: addnab/docker-run-action@v3
-        with:
-          image: quay.io/pypa/manylinux_2_28_x86_64
-          options: -v ${{ github.workspace }}:/workspace
-          run: |
-            cd /workspace/dist
-            echo ">>> Running smoke test..."
-            ./sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
+        run: |
+          echo ">>> Running smoke test..."
+          ./dist/sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
 
       # -------------------------------
       # Publish binary to GitHub Release
@@ -131,3 +99,34 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.semantic-release.outputs.tag }}
+
+      # -------------------------------
+      # Build and Upload RPM to COPR
+      # -------------------------------
+      - name: Build source RPM (Nuitka binary)
+        if: steps.semantic-release.outputs.released == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm copr-cli
+          mkdir -p ~/rpmbuild/{SOURCES,SPECS,SRPMS}
+          VERSION=${{ steps.semantic-release.outputs.version }}
+
+          # Create source tarball with binary
+          tar czf ~/rpmbuild/SOURCES/sentinel-${VERSION}-linux-x86_64.tar.gz -C dist sentinel-linux-x86_64-${VERSION}
+
+          # Generate spec file from template
+          sed "s/@VERSION@/${VERSION}/g" packaging/sentinel.spec.in > ~/rpmbuild/SPECS/sentinel.spec
+
+          # Build source RPM
+          rpmbuild -bs ~/rpmbuild/SPECS/sentinel.spec \
+            --define "_sourcedir ~/rpmbuild/SOURCES" \
+            --define "_srcrpmdir ~/rpmbuild/SRPMS"
+
+      - name: Upload to COPR
+        if: steps.semantic-release.outputs.released == 'true'
+        env:
+          COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
+        run: |
+          mkdir -p ~/.config
+          echo "$COPR_CONFIG" > ~/.config/copr
+          copr-cli build epacking4721/sentinel ~/rpmbuild/SRPMS/*.src.rpm
