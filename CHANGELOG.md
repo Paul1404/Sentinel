@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.9 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(workflow): refactor release pipeline to build only in manylinux and add smoke test
+  ([`46b3e14`](https://github.com/Paul1404/Sentinel/commit/46b3e149a921bee6d210a07d8ea7b0d2782fabcd))
+
+
 ## v0.3.8 (2025-08-30)
 
 ### Bug Fixes
