@@ -18,7 +18,7 @@ jobs:
 
     steps:
       # -------------------------------
-      # Checkout source code
+      # 1. Checkout source code
       # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,7 +30,10 @@ jobs:
         run: git reset --hard ${{ github.sha }}
 
       # -------------------------------
-      # Semantic Release (version bump, changelog, tagging)
+      # 2. Semantic Release
+      #    - Determines next version
+      #    - Updates changelog
+      #    - Creates Git tag
       # -------------------------------
       - name: Semantic Release
         id: semantic-release
@@ -42,7 +45,10 @@ jobs:
           verbosity: 2
 
       # -------------------------------
-      # Build Nuitka binary inside manylinux
+      # 3. Build Nuitka binary
+      #    - Runs inside manylinux_2_28 (glibc 2.28 baseline)
+      #    - Uses Python 3.12
+      #    - Produces a self-contained binary
       # -------------------------------
       - name: Build binary with Nuitka (manylinux_2_28, Python 3.12)
         if: steps.semantic-release.outputs.released == 'true'
@@ -82,7 +88,9 @@ jobs:
             ls -lh dist/
 
       # -------------------------------
-      # Smoke test binary
+      # 4. Smoke test binary
+      #    - Ensures binary runs at least with --help
+      #    - Catches missing dependencies before publishing
       # -------------------------------
       - name: Smoke test built binary
         if: steps.semantic-release.outputs.released == 'true'
@@ -91,7 +99,7 @@ jobs:
           ./dist/sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
 
       # -------------------------------
-      # Publish binary to GitHub Release
+      # 5. Publish binary to GitHub Release
       # -------------------------------
       - name: Publish binary to GitHub Release
         if: steps.semantic-release.outputs.released == 'true'
@@ -101,13 +109,17 @@ jobs:
           tag: ${{ steps.semantic-release.outputs.tag }}
 
       # -------------------------------
-      # Build and Upload RPM to COPR
+      # 6. Build and Upload RPM to COPR
+      #    - Runs inside UBI9 (RHEL-compatible)
+      #    - Installs rpm-build + copr-cli from EPEL
+      #    - Wraps Nuitka binary into RPM
+      #    - Uploads SRPM to COPR
       # -------------------------------
-     - name: Build and Upload RPM to COPR
+      - name: Build and Upload RPM to COPR (UBI9 container)
         if: steps.semantic-release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
         with:
-          image: quay.io/centos/centos:stream9
+          image: registry.access.redhat.com/ubi9/ubi
           options: -v ${{ github.workspace }}:/workspace
           run: |
             # Enable EPEL for copr-cli
@@ -134,4 +146,3 @@ jobs:
             copr-cli build epacking4721/sentinel /root/rpmbuild/SRPMS/*.src.rpm
         env:
           COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
-          
