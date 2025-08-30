@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.3.11 (2025-08-30)
+
+### Bug Fixes
+
+- Trigger Release Workflow as Test
+  ([`7345dfd`](https://github.com/Paul1404/Sentinel/commit/7345dfd25881f601f3c9377aa8d2a681d2cc7f04))
+
+### Chores
+
+- Ci(workflow): finalize release pipeline with GitHub binary + COPR RPM publish
+  ([`aa7d443`](https://github.com/Paul1404/Sentinel/commit/aa7d443aa28c2bf45aacee4c49302fcce34c9508))
+
+- Ci(workflow): refactor release pipeline with ccache, containerized build, and smoke test
+  ([`1e2de30`](https://github.com/Paul1404/Sentinel/commit/1e2de302adc8ce8f1df401ba7a630c8a12240937))
+
+
 ## v0.3.10 (2025-08-30)
 
 
