@@ -1,4 +1,4 @@
-name: Release
+name: Release Pipeline
 
 on:
   push:
@@ -9,24 +9,31 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build-release:
+    name: Build & Release Sentinel Binary
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-release-${{ github.ref_name }}
       cancel-in-progress: false
 
     steps:
-      - name: Checkout
+      # -------------------------------
+      # Checkout source code
+      # -------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
-      - name: Force branch to workflow sha
+      - name: Force branch to workflow SHA
         run: git reset --hard ${{ github.sha }}
 
+      # -------------------------------
+      # Semantic Release (version bump, changelog, tagging)
+      # -------------------------------
       - name: Semantic Release
-        id: release
+        id: semantic-release
         uses: python-semantic-release/python-semantic-release@v10.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -34,27 +41,56 @@ jobs:
           git_committer_email: "actions@users.noreply.github.com"
           verbosity: 2
 
+      # -------------------------------
+      # Cache ccache across builds
+      # -------------------------------
+      - name: Cache ccache
+        if: steps.semantic-release.outputs.released == 'true'
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ccache-${{ github.ref_name }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      # -------------------------------
+      # Build binary inside manylinux container
+      # -------------------------------
       - name: Build binary with Nuitka (manylinux_2_28, Python 3.12)
-        if: steps.release.outputs.released == 'true'
+        if: steps.semantic-release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
         with:
           image: quay.io/pypa/manylinux_2_28_x86_64
-          options: -v ${{ github.workspace }}:/workspace
+          options: >
+            -v ${{ github.workspace }}:/workspace
+            -v ${{ github.workspace }}/.ccache:/root/.ccache
           run: |
+            # Install ccache inside container
+            yum install -y ccache
+
+            # Unpack static libpython (required for Nuitka embedding)
             cd /opt/_internal
             tar xf static-libs-for-embedding-only.tar.xz
 
+            # Setup Python 3.12 virtualenv
             cd /workspace
             /opt/python/cp312-cp312/bin/python -m venv venv
             source venv/bin/activate
 
             # Install build tools + app dependencies
             pip install --upgrade pip setuptools wheel nuitka
-            pip install -r requirements.txt 
+            pip install -r requirements.txt
 
-            VERSION=${{ steps.release.outputs.version }}
+            # Configure ccache
+            export PATH="/usr/lib64/ccache:$PATH"
+            ccache --max-size=2G
+            echo ">>> ccache stats before build:"
+            ccache --show-stats
+
+            # Build binary with Nuitka
+            VERSION=${{ steps.semantic-release.outputs.version }}
             BASENAME="sentinel-linux-x86_64-${VERSION}"
-            echo "Building Sentinel version $VERSION -> $BASENAME"
+            echo ">>> Building Sentinel version $VERSION -> $BASENAME"
 
             python -m nuitka \
               --onefile \
@@ -69,15 +105,29 @@ jobs:
             mv $BASENAME dist/
             ls -lh dist/
 
-      - name: Smoke test built binary
-        if: steps.release.outputs.released == 'true'
-        run: |
-          echo "Running smoke test..."
-          ./dist/sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
+            echo ">>> ccache stats after build:"
+            ccache --show-stats
 
+      # -------------------------------
+      # Smoke test binary inside container
+      # -------------------------------
+      - name: Smoke test built binary
+        if: steps.semantic-release.outputs.released == 'true'
+        uses: addnab/docker-run-action@v3
+        with:
+          image: quay.io/pypa/manylinux_2_28_x86_64
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace/dist
+            echo ">>> Running smoke test..."
+            ./sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
+
+      # -------------------------------
+      # Publish binary to GitHub Release
+      # -------------------------------
       - name: Publish binary to GitHub Release
-        if: steps.release.outputs.released == 'true'
+        if: steps.semantic-release.outputs.released == 'true'
         uses: python-semantic-release/publish-action@v10.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.release.outputs.tag }}
+          tag: ${{ steps.semantic-release.outputs.tag }}
