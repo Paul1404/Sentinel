@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.3.13 (2025-08-30)
+
+### Bug Fixes
+
+- Trigger CI
+  ([`9331229`](https://github.com/Paul1404/Sentinel/commit/9331229e31be7a671ca5b72c0d860b0a554fc3c1))
+
+### Chores
+
+- Ci(workflow): rewrite release pipeline with Nuitka build, smoke test, GitHub release, and COPR RPM
+  publish
+  ([`2870eb4`](https://github.com/Paul1404/Sentinel/commit/2870eb4fb8a2f7e2a3e0ab7cb2b619b062343032))
+
+
 ## v0.3.12 (2025-08-30)
 
 ### Bug Fixes
