@@ -84,24 +84,38 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           pip install nuitka
 
-      - name: Build binary with Nuitka
+      - name: Build binary with Nuitka (manylinux_2_28, Python 3.12)
         if: steps.release.outputs.released == 'true'
-        env:
-          NUITKA_CACHE_DIR: ~/.cache/Nuitka
-        run: |
-          mkdir -p dist
-          VERSION=${{ steps.release.outputs.version }}
-          BASENAME="sentinel-linux-x86_64-${VERSION}"
-          echo "Building Sentinel version $VERSION -> $BASENAME"
-          python -m nuitka \
-            --onefile \
-            --standalone \
-            --lto=yes \
-            --static-libpython=yes \
-            --output-filename=$BASENAME \
-            sentinel.py
-          mv $BASENAME dist/
-          ls -lh dist/
+        uses: addnab/docker-run-action@v3
+        with:
+          image: quay.io/pypa/manylinux_2_28_x86_64
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+
+            # Use Python 3.12 from manylinux
+            /opt/python/cp312-cp312/bin/python -m venv venv
+            source venv/bin/activate
+
+            # Install build tools
+            pip install --upgrade pip wheel setuptools nuitka
+
+            # Build binary
+            VERSION=${{ steps.release.outputs.version }}
+            BASENAME="sentinel-linux-x86_64-${VERSION}"
+            echo "Building Sentinel version $VERSION -> $BASENAME"
+
+            python -m nuitka \
+              --onefile \
+              --standalone \
+              --lto=yes \
+              --static-libpython=yes \
+              --output-filename=$BASENAME \
+              sentinel.py
+
+            mkdir -p dist
+            mv $BASENAME dist/
+            ls -lh dist/
 
       - name: Publish binary to GitHub Release
         if: steps.release.outputs.released == 'true'
