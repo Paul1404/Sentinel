@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.12 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(workflow): use CentOS container for COPR RPM build and upload
+  ([`2da96b8`](https://github.com/Paul1404/Sentinel/commit/2da96b8d5116ac4fe0f4432be626d4d5669683fc))
+
+
 ## v0.3.11 (2025-08-30)
 
 ### Bug Fixes
