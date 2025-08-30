@@ -109,6 +109,8 @@ jobs:
               --standalone \
               --lto=yes \
               --static-libpython=yes \
+              --include-module=typer \
+              --include-module=rich \
               --output-filename=$BASENAME \
               sentinel.py
 
