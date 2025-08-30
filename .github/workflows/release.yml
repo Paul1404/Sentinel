@@ -103,13 +103,15 @@ jobs:
       # -------------------------------
       # Build and Upload RPM to COPR
       # -------------------------------
-      - name: Build and Upload RPM to COPR
+     - name: Build and Upload RPM to COPR
         if: steps.semantic-release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
         with:
           image: quay.io/centos/centos:stream9
           options: -v ${{ github.workspace }}:/workspace
           run: |
+            # Enable EPEL for copr-cli
+            dnf install -y epel-release
             dnf install -y rpm-build copr-cli git sed tar
 
             mkdir -p /root/rpmbuild/{SOURCES,SPECS,SRPMS}
