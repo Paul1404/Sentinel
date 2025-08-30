@@ -134,3 +134,4 @@ jobs:
             copr-cli build epacking4721/sentinel /root/rpmbuild/SRPMS/*.src.rpm
         env:
           COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
+          
