@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.7 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(workflow): fix Nuitka build to include dependencies (typer, rich)
+  ([`f70bb66`](https://github.com/Paul1404/Sentinel/commit/f70bb66a673cecf72fb5071b77723be72ed956c5))
+
+
 ## v0.3.6 (2025-08-30)
 
 ### Bug Fixes
