@@ -36,51 +36,37 @@ jobs:
         with:
           image: rockylinux:9
           options: -v ${{ github.workspace }}:/workspace
-          run: |
-            set -x  # enable shell debug
+        run: |
+          set -x
+          dnf install -y epel-release
+          dnf install -y rpm-build copr-cli git sed tar
 
-            dnf install -y epel-release
-            dnf install -y rpm-build copr-cli git sed tar
+          mkdir -p /root/rpmbuild/{SOURCES,SPECS,SRPMS}
 
-            mkdir -p /root/rpmbuild/{SOURCES,SPECS,SRPMS}
-            VERSION=$(basename dist/sentinel-linux-x86_64-* | cut -d'-' -f4)
+          # Extract version from filename
+          VERSION=$(basename dist/sentinel-linux-x86_64-* | sed -E 's/.*sentinel-linux-x86_64-([0-9.]+)/\1/')
+          echo ">>> Parsed version: $VERSION"
 
-            echo ">>> Parsed version: $VERSION"
+          # Create source tarball
+          tar czf /root/rpmbuild/SOURCES/sentinel-${VERSION}-linux-x86_64.tar.gz -C dist sentinel-linux-x86_64-${VERSION}
+          ls -lh /root/rpmbuild/SOURCES/
 
-            # Create source tarball with binary
-            tar czf /root/rpmbuild/SOURCES/sentinel-${VERSION}-linux-x86_64.tar.gz -C dist sentinel-linux-x86_64-${VERSION}
+          # Generate spec file
+          DATE="$(date '+%a %b %d %Y')"
+          sed -e "s/@VERSION@/${VERSION}/g" -e "s/@DATE@/${DATE}/g" /workspace/packaging/sentinel.spec.in > /root/rpmbuild/SPECS/sentinel.spec
+          cat /root/rpmbuild/SPECS/sentinel.spec
 
-            echo ">>> Contents of SOURCES/"
-            ls -lh /root/rpmbuild/SOURCES/
+          # Build SRPM
+          rpmbuild -bs /root/rpmbuild/SPECS/sentinel.spec \
+            --define "_sourcedir /root/rpmbuild/SOURCES" \
+            --define "_srcrpmdir /root/rpmbuild/SRPMS"
+          ls -lh /root/rpmbuild/SRPMS/
 
-            # Generate spec file from template
-            DATE="$(date '+%a %b %d %Y')"
-            sed -e "s/@VERSION@/${VERSION}/g" \
-                -e "s/@DATE@/${DATE}/g" \
-                /workspace/packaging/sentinel.spec.in > /root/rpmbuild/SPECS/sentinel.spec
-
-            echo ">>> Generated spec file:"
-            cat /root/rpmbuild/SPECS/sentinel.spec
-
-            # Build source RPM
-            rpmbuild -bs /root/rpmbuild/SPECS/sentinel.spec \
-              --define "_sourcedir /root/rpmbuild/SOURCES" \
-              --define "_srcrpmdir /root/rpmbuild/SRPMS"
-
-            echo ">>> SRPMs built:"
-            ls -lh /root/rpmbuild/SRPMS/
-
-            # Upload to COPR
-            mkdir -p /root/.config
-            echo "${COPR_CONFIG}" > /root/.config/copr
-
-            echo ">>> Copr config (sanitized):"
-            grep -v "token" /root/.config/copr || true
-
-            echo ">>> copr-cli version:"
-            copr-cli --version
-
-            echo ">>> Submitting build to COPR..."
-            copr-cli --debug build epacking4721/sentinel /root/rpmbuild/SRPMS/*.src.rpm
+          # Upload to COPR
+          mkdir -p /root/.config
+          echo "${COPR_CONFIG}" > /root/.config/copr
+          echo ">>> Copr config (sanitized):"
+          grep -v "token" /root/.config/copr
+          copr-cli --debug build epacking4721/sentinel /root/rpmbuild/SRPMS/*.src.rpm
         env:
           COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
