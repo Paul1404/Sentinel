@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.5 (2025-08-30)
+
+### Bug Fixes
+
+- Set --static-libpython=no
+  ([`92163a8`](https://github.com/Paul1404/Sentinel/commit/92163a824da1bd0f2bf86d6b4ff20b12631a3323))
+
+
 ## v0.3.4 (2025-08-30)
 
 ### Bug Fixes
