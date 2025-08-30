@@ -109,6 +109,7 @@ jobs:
               --onefile \
               --standalone \
               --lto=yes \
+              --static-libpython=no \
               --output-filename=$BASENAME \
               sentinel.py
 
