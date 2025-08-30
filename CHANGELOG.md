@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.15 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(copr): fix spec changelog date and ensure valid copr-cli config
+  ([`d2bc49a`](https://github.com/Paul1404/Sentinel/commit/d2bc49a94e71a6d06429bb3045ce3229ac2e49da))
+
+
 ## v0.3.14 (2025-08-30)
 
 
