@@ -68,14 +68,18 @@ wheels = [
 
 [[package]]
 name = "sentinel"
-version = "0.1.0"
+version = "0.3.7"
 source = { virtual = "." }
 dependencies = [
+    { name = "rich" },
     { name = "typer" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "typer", specifier = ">=0.16.1" }]
+requires-dist = [
+    { name = "rich", specifier = ">=13.0.0" },
+    { name = "typer", specifier = ">=0.16.1" },
+]
 
 [[package]]
 name = "shellingham"

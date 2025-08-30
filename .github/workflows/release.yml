@@ -98,7 +98,9 @@ jobs:
             /opt/python/cp312-cp312/bin/python -m venv venv
             source venv/bin/activate
 
+            # Install build tools + your app dependencies
             pip install --upgrade pip setuptools wheel nuitka
+            pip install -r requirements.txt 
 
             VERSION=${{ steps.release.outputs.version }}
             BASENAME="sentinel-linux-x86_64-${VERSION}"
@@ -109,14 +111,13 @@ jobs:
               --standalone \
               --lto=yes \
               --static-libpython=yes \
-              --include-module=typer \
-              --include-module=rich \
               --output-filename=$BASENAME \
               sentinel.py
 
             mkdir -p dist
             mv $BASENAME dist/
             ls -lh dist/
+
 
       - name: Publish binary to GitHub Release
         if: steps.release.outputs.released == 'true'
