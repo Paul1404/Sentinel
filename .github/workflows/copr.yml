@@ -23,7 +23,7 @@ jobs:
           fileName: "sentinel-linux-x86_64-.*"
           out-file-path: dist
 
-      - name: Debug: list downloaded files
+      - name: List downloaded files
         run: |
           echo ">>> Files in dist/"
           ls -lh dist/ || true
