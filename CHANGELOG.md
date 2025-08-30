@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.3.16 (2025-08-30)
+
+### Bug Fixes
+
+- Remove : from pipeline job
+  ([`c5b3e73`](https://github.com/Paul1404/Sentinel/commit/c5b3e735290096cc6b4d18ee0516bd6f51be28c1))
+
+### Chores
+
+- Ci(copr): add debug output for binary, spec, SRPM, and copr-cli config
+  ([`4638364`](https://github.com/Paul1404/Sentinel/commit/46383646be4c827c8c4db61f76e32c87e4e89c8c))
+
+- Ci(copr): add separate COPR packaging workflow using latest GitHub release binary
+  ([`cf3b487`](https://github.com/Paul1404/Sentinel/commit/cf3b48746b1829044892f8168f1c5c8d7312563b))
+
+
 ## v0.3.15 (2025-08-30)
 
 ### Bug Fixes
