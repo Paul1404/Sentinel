@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.0 (2025-08-30)
+
+### Features
+
+- Add README for release pipeline with mermaid diagram
+  ([`70e38a9`](https://github.com/Paul1404/Sentinel/commit/70e38a9e248c540da5584020e45f28409153626a))
+
+
 ## v0.2.1 (2025-08-30)
 
 ### Bug Fixes
