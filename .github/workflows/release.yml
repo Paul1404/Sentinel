@@ -64,6 +64,7 @@ jobs:
               --output-filename=$BASENAME \
               sentinel.py
 
+            chmod +x $BASENAME
             mkdir -p dist
             mv $BASENAME dist/
             ls -lh dist/
@@ -71,7 +72,6 @@ jobs:
       - name: Smoke test built binary
         if: steps.release.outputs.released == 'true'
         run: |
-          chmod +x dist/sentinel-linux-x86_64-*
           echo "Running smoke test..."
           ./dist/sentinel-linux-x86_64-* --help || (echo "❌ Binary failed to run" && exit 1)
 
