@@ -110,16 +110,16 @@ jobs:
 
       # -------------------------------
       # 6. Build and Upload RPM to COPR
-      #    - Runs inside UBI9 (RHEL-compatible)
+      #    - Runs inside Rocky Linux 9 container
       #    - Installs rpm-build + copr-cli from EPEL
       #    - Wraps Nuitka binary into RPM
       #    - Uploads SRPM to COPR
       # -------------------------------
-      - name: Build and Upload RPM to COPR (UBI9 container)
+      - name: Build and Upload RPM to COPR (Rocky Linux 9 container)
         if: steps.semantic-release.outputs.released == 'true'
         uses: addnab/docker-run-action@v3
         with:
-          image: registry.access.redhat.com/ubi9/ubi
+          image: rockylinux:9
           options: -v ${{ github.workspace }}:/workspace
           run: |
             # Enable EPEL for copr-cli
