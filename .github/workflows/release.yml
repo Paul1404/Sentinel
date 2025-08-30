@@ -24,7 +24,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      # 1. Install ccache
       - name: Install ccache
         run: |
           sudo apt-get update
@@ -32,16 +31,6 @@ jobs:
           ccache --version
           ccache --max-size=2G
 
-      # 2. Restore ccache cache
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      # 3. Restore pip cache
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -50,31 +39,48 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Cache Nuitka
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nuitka
+          key: ${{ runner.os }}-nuitka-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-nuitka-
+
       - name: Install dependencies
         run: pip install python-semantic-release nuitka
 
-      # 4. Build binary
+      # Step 1: Run semantic-release to bump version, tag, changelog, release
+      - name: Run semantic-release
+        id: semrel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release -vv publish
+
+      # Step 2: Build binary with Nuitka (after version bump)
       - name: Build binary with Nuitka
+        env:
+          NUITKA_CACHE_DIR: ~/.cache/nuitka
         run: |
           mkdir -p dist
-          nuitka \
+          VERSION=$(git describe --tags --abbrev=0)
+          BASENAME="sentinel-linux-x86_64-${VERSION#v}"
+          echo "Building Sentinel version $VERSION -> $BASENAME"
+          python -m nuitka \
             --onefile \
             --standalone \
             --lto=yes \
             --static-libpython=yes \
-            --output-filename=sentinel-linux-x86_64 \
+            --output-filename=$BASENAME \
             sentinel.py
-          strip sentinel-linux-x86_64
-          mv sentinel-linux-x86_64 dist/
+          strip $BASENAME
+          mv $BASENAME dist/
           ls -lh dist/
-
-      # 5. Run semantic-release (will upload dist/* automatically)
-      - name: Debug semantic-release (noop)
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release -vv --noop version --print
-
-      - name: Run semantic-release
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release -vv publish
