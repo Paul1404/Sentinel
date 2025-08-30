@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.2 (2025-08-30)
+
+### Bug Fixes
+
+- Remove Binary Strip from ci
+  ([`ff2ccf2`](https://github.com/Paul1404/Sentinel/commit/ff2ccf2b6a0eec43e460c6baf0402e9739b5f7c9))
+
+
 ## v0.3.1 (2025-08-30)
 
 ### Bug Fixes
