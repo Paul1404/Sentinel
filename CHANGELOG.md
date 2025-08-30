@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.1 (2025-08-30)
+
+### Bug Fixes
+
+- Make nuitka floating
+  ([`0d79d3a`](https://github.com/Paul1404/Sentinel/commit/0d79d3a5c269fb9e6d429bd62e85988145dfa0b1))
+
+
 ## v0.3.0 (2025-08-30)
 
 ### Features
