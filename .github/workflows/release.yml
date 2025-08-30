@@ -130,3 +130,4 @@ jobs:
           mkdir -p ~/.config
           echo "$COPR_CONFIG" > ~/.config/copr
           copr-cli build epacking4721/sentinel ~/rpmbuild/SRPMS/*.src.rpm
+          
