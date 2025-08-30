@@ -28,5 +28,5 @@ install -m 0755 sentinel-linux-x86_64-%{version} %{buildroot}/usr/bin/sentinel
 /usr/bin/sentinel
 
 %changelog
-* %{_date} Paul Dresch p.dresch@pdcd.net - %{version}-1
+* @DATE@ Paul Dresch <p.dresch@pdcd.net> - @VERSION@-1
 - Automated COPR build
