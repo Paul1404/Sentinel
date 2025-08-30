@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.3 (2025-08-30)
+
+### Bug Fixes
+
+- Test New Release Workflow
+  ([`7f98553`](https://github.com/Paul1404/Sentinel/commit/7f9855378b1969162d378cd36d72a0320e097873))
+
+
 ## v0.3.2 (2025-08-30)
 
 ### Bug Fixes
