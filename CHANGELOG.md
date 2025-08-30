@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.8 (2025-08-30)
+
+### Bug Fixes
+
+- Ci(workflow): install project dependencies before Nuitka build
+  ([`d3d5b28`](https://github.com/Paul1404/Sentinel/commit/d3d5b286c90099775a7a29c3356cdcac7014e71d))
+
+
 ## v0.3.7 (2025-08-30)
 
 ### Bug Fixes
