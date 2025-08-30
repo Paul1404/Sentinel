@@ -91,16 +91,15 @@ jobs:
           image: quay.io/pypa/manylinux_2_28_x86_64
           options: -v ${{ github.workspace }}:/workspace
           run: |
-            cd /workspace
+            cd /opt/_internal
+            tar xf static-libs-for-embedding-only.tar.xz
 
-            # Use Python 3.12 from manylinux
+            cd /workspace
             /opt/python/cp312-cp312/bin/python -m venv venv
             source venv/bin/activate
 
-            # Install build tools
-            pip install --upgrade pip wheel setuptools nuitka
+            pip install --upgrade pip setuptools wheel nuitka
 
-            # Build binary
             VERSION=${{ steps.release.outputs.version }}
             BASENAME="sentinel-linux-x86_64-${VERSION}"
             echo "Building Sentinel version $VERSION -> $BASENAME"
@@ -109,7 +108,7 @@ jobs:
               --onefile \
               --standalone \
               --lto=yes \
-              --static-libpython=no \
+              --static-libpython=yes \
               --output-filename=$BASENAME \
               sentinel.py
 
