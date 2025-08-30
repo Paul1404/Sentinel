@@ -109,7 +109,6 @@ jobs:
               --onefile \
               --standalone \
               --lto=yes \
-              --static-libpython=yes \
               --output-filename=$BASENAME \
               sentinel.py
 
@@ -123,4 +122,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.release.outputs.tag }}
-          
